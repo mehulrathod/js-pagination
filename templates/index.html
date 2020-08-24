@@ -1,0 +1,130 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <title>Pagination</title>
+    <link rel="icon" href="{% static 'img/favicon.ico' %}" type="image/gif" sizes="16x16">
+    <style type="text/css">
+        ul {
+            list-style: none;
+            display: flex;
+            margin: 0;
+            padding: 0;
+        }
+        ul li {
+            padding: 3px;
+            background-color: rgba(0, 0, 0, .09);
+            border-radius: 4px;
+            min-width: 30px;
+            display: flex;
+            justify-content: center;
+            border: 1px solid #dee2e6;
+        }
+        ul li:not(:last-child) {
+            margin-right: 5px;
+        }
+        .paging {
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+<div class="container " id="demo">
+    <div class="table-responsive">
+        <h1 class="text-center w-5 text-success bg-dark">JSON data to HTMl Table</h1>
+        <br/>
+        <div class="mylist"></div>
+        <div class="paging"></div>
+    </div>
+</div>
+<script>
+    const pageSize = 10;
+    const currentPage = 1;
+    let totalRecords = 0;
+    const pageElement = document.querySelector(".paging");
+    const tableContainer = document.querySelector(".mylist");
+
+    const genPaging = ({totalRecords, currentPage, pageSize}) => {
+        const totalPages = totalRecords / pageSize;
+        currentPage = +currentPage;
+        const numOfPagePrint = 2;
+        const genHtml = (index) => `<li>
+                                        ${currentPage === index ? index : `<a href="javascript:void(0);" class="paging-link" data-index="${index}">${index}</a>`}
+                                    </li>`;
+        let pagingHtml = '<ul>';
+        if (currentPage <= numOfPagePrint) {
+            pagingHtml += genHtml(1);
+            pagingHtml += genHtml(2);
+            pagingHtml += genHtml(3);
+            pagingHtml += '<li>...</li>';
+            pagingHtml += genHtml(totalPages);
+        } else if (totalPages - currentPage < numOfPagePrint) {
+            pagingHtml += genHtml(1);
+            pagingHtml += '<li>...</li>';
+            pagingHtml += genHtml(totalPages - 2);
+            pagingHtml += genHtml(totalPages - 1);
+            pagingHtml += genHtml(totalPages);
+        } else {
+            pagingHtml += genHtml(1);
+            pagingHtml += '<li>...</li>';
+            pagingHtml += genHtml(currentPage - 1);
+            pagingHtml += genHtml(currentPage);
+            pagingHtml += genHtml(currentPage + 1);
+            pagingHtml += '<li>...</li>';
+            pagingHtml += genHtml(totalPages);
+        }
+        return pagingHtml += '</ul>';
+    };
+    const getPageRecords = (data, pageNum) => {
+        const fromNum = (pageNum - 1) * pageSize;
+        return [...data].splice(fromNum, pageSize);
+    };
+    const refreshTable = (data, currentPage) => {
+        const totalRecords = data.length;
+        tableContainer.innerHTML = renderTable(getPageRecords(data, currentPage));
+        pageElement.innerHTML = genPaging({totalRecords, currentPage, pageSize});
+    };
+    const bindEvent = (elems, data) => {
+        elems.forEach(elem => {
+            elem.addEventListener("click", function () {
+                const selectedPage = this.dataset.index;
+                refreshTable(data, selectedPage);
+                bindEvent(document.querySelectorAll(".paging-link"), data);
+            });
+        });
+    }
+    const pageLink = document.querySelector(".paging-link");
+
+    async function getData() {
+        const response = await fetch('http://127.0.0.1:8000/user/');
+        const data = await response.json();
+        refreshTable(data, currentPage);
+        bindEvent(document.querySelectorAll(".paging-link"), data);
+    }
+
+    getData();
+    const renderTable = (data) => {
+        let tableHTML = `<table class="table table-bordered table-striped text-center" id="myList">
+                <tr>
+                    <th class="bg-dark text-success">Employee Id</th>
+                    <th class="bg-dark text-success">First Name</th>
+                    <th class="bg-dark text-success">Last Name</th>
+                </tr>
+            `;
+        tableHTML += data.map(record => `
+                <tr>
+                    <td>${record.user_id}</td>
+                    <td>${record.firstname}</td>
+                    <td>${record.lastname}</td>
+                </tr>
+                `).join("");
+        return tableHTML + '</table>';
+    }
+</script>
+</body>
+</html>
